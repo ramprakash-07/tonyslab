@@ -26,7 +26,7 @@ from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_ex
 LOGGER = logging.getLogger("stewardship_backend")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 
-MODEL_PATH = os.getenv("MODEL_PATH", "stewardship_intrusion_model.joblib")
+MODEL_PATH = os.getenv("MODEL_PATH", "stewardship_intrusion_model_tn.joblib")
 SCALER_PATH = os.getenv("SCALER_PATH", "stewardship_scaler.joblib")
 MODEL_VERSION = os.getenv("MODEL_VERSION", "stewardship-v1")
 RISK_THRESHOLD_LOW = float(os.getenv("RISK_THRESHOLD_LOW", "0.33"))

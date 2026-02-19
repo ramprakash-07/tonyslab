@@ -249,6 +249,7 @@ def _nested_cv_model_selection(
 
   for name, estimator, params in candidate_estimators:
     fold_scores = []
+    failed = False
     for fold_idx, (train_idx, test_idx) in enumerate(outer_cv.split(X), start=1):
       last_split = (train_idx, test_idx)
       X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
@@ -265,7 +266,12 @@ def _nested_cv_model_selection(
         n_jobs=-1,
         refit=True,
       )
-      search.fit(X_train, y_train)
+      try:
+        search.fit(X_train, y_train)
+      except Exception as exc:
+        print(f"{name} skipped on fold {fold_idx}: {exc}")
+        failed = True
+        break
       y_pred = search.best_estimator_.predict(X_test)
       fold_f2 = fbeta_score(y_test, y_pred, beta=2, zero_division=0)
       fold_scores.append(float(fold_f2))
@@ -279,10 +285,18 @@ def _nested_cv_model_selection(
       )
       print(f"{name} outer fold {fold_idx} F2={fold_f2:.4f}")
 
-    avg_scores[name] = float(np.mean(fold_scores)) if fold_scores else 0.0
+    if failed or not fold_scores:
+      avg_scores[name] = -1.0
+      print(f"{name} excluded from selection (training failed under current class distribution).")
+      continue
+
+    avg_scores[name] = float(np.mean(fold_scores))
     print(f"{name} nested CV average F2={avg_scores[name]:.4f}")
 
-  best_name = max(avg_scores, key=avg_scores.get)
+  valid_scores = {k: v for k, v in avg_scores.items() if v >= 0}
+  if not valid_scores:
+    raise RuntimeError("No candidate estimator could be trained successfully.")
+  best_name = max(valid_scores, key=valid_scores.get)
   best_tpl = next(item for item in candidate_estimators if item[0] == best_name)
   return best_name, best_tpl[1], best_tpl[2], all_results, last_split
 

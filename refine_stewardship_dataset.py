@@ -114,14 +114,17 @@ def _apply_optional_imputation(df: pd.DataFrame, cols: list[str], mode: str) -> 
   if mode == "time":
     return out
 
-  matrix = out[cols]
+  usable_cols = [c for c in cols if c in out.columns and out[c].notna().any()]
+  if not usable_cols:
+    return out
+  matrix = out[usable_cols]
   if mode == "knn":
     try:
       from sklearn.impute import KNNImputer
 
       imputer = KNNImputer(n_neighbors=3)
-      out[cols] = imputer.fit_transform(matrix)
-      LOGGER.info("Applied KNN imputation for %s", cols)
+      out[usable_cols] = imputer.fit_transform(matrix)
+      LOGGER.info("Applied KNN imputation for %s", usable_cols)
     except Exception as exc:
       LOGGER.warning("KNN imputation unavailable; keeping time interpolation only (%s)", exc)
   elif mode == "iterative":
@@ -130,8 +133,8 @@ def _apply_optional_imputation(df: pd.DataFrame, cols: list[str], mode: str) -> 
       from sklearn.impute import IterativeImputer
 
       imputer = IterativeImputer(random_state=42, max_iter=25)
-      out[cols] = imputer.fit_transform(matrix)
-      LOGGER.info("Applied Iterative imputation for %s", cols)
+      out[usable_cols] = imputer.fit_transform(matrix)
+      LOGGER.info("Applied Iterative imputation for %s", usable_cols)
     except Exception as exc:
       LOGGER.warning("Iterative imputation unavailable; keeping time interpolation only (%s)", exc)
   return out
@@ -176,6 +179,8 @@ def clean_and_engineer(
     .apply(lambda g: _time_interpolate_group(g, ["NDVI", "VSD", "VSG"], time_col))
     .reset_index(drop=True)
   )
+  if "Location" not in out.columns and "Location" in df.columns:
+    out["Location"] = df["Location"].iloc[0]
 
   out = _apply_optional_imputation(out, ["NDVI", "VSD", "VSG"], mode=imputation_mode)
 
