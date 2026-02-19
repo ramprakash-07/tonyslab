@@ -1,0 +1,23 @@
+﻿{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "chennai_bbox"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [80.10, 12.90],
+            [80.35, 12.90],
+            [80.35, 13.20],
+            [80.10, 13.20],
+            [80.10, 12.90]
+          ]
+        ]
+      }
+    }
+  ]
+}
